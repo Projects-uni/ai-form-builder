@@ -6,7 +6,12 @@ import { SentimentPieChart } from '@/app/components/AnalyticsCharts'
 import { kmeans } from 'ml-kmeans'
 import { getServerTranslations } from '@/lib/i18n/server'
 import LanguageToggle from '@/app/components/LanguageToggle'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BrainCircuit, FileText, BarChart3, TrendingUp, Download } from 'lucide-react'
+import DownloadPdfButton from '@/app/components/DownloadPdfButton'
+import ReportTemplate from '@/app/components/ReportTemplate'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/Card'
+import { Button } from '@/app/components/ui/Button'
+import { Badge } from '@/app/components/ui/Badge'
 
 interface Props {
   params: Promise<{ workspaceId: string; formId: string }>
@@ -28,7 +33,6 @@ function calculateSilhouetteScore(data: number[][], clusters: number[]) {
     const point = data[i]
     const clusterId = clusters[i]
     
-    // a(i)
     let a_i = 0
     let sameClusterCount = 0
     for (let j = 0; j < data.length; j++) {
@@ -39,7 +43,6 @@ function calculateSilhouetteScore(data: number[][], clusters: number[]) {
     }
     a_i = sameClusterCount > 0 ? a_i / sameClusterCount : 0
     
-    // b(i)
     let b_i = Infinity
     const otherClusters = new Set(clusters)
     otherClusters.delete(clusterId)
@@ -84,11 +87,10 @@ export default async function AnalyticsPage({ params }: Props) {
 
   if (!member) redirect('/dashboard')
 
-  // Fetch form, responses count, and embeddings
   const [{ data: form }, { count: responsesCount }, { data: embeddings, error: embeddingsErr }] = await Promise.all([
     supabase
       .from('forms')
-      .select('id, title, schema')
+      .select('id, title, description, schema')
       .eq('id', formId)
       .eq('workspace_id', workspaceId)
       .single(),
@@ -107,24 +109,25 @@ export default async function AnalyticsPage({ params }: Props) {
   const schema = normalizeFormSchema(form.schema)
   const questionMap = new Map(schema.questions.map(q => [q.id, q.label || t.formEditor.untitledQuestion]))
 
-  // 1. Sentiment Distribution
   let positive = 0, negative = 0, neutral = 0
   const validEmbeddings = embeddings || []
   
   for (const e of validEmbeddings) {
     if (e.sentiment_label === 'positive') positive++
     else if (e.sentiment_label === 'negative') negative++
-    else neutral++ // counts both 'neutral' and 'mixed' or anything else as neutral
+    else neutral++
   }
 
   const sentimentData = [
-    { name: t.analytics.positive, value: positive, color: '#22c55e' },
+    { name: t.analytics.positive, value: positive, color: '#10b981' },
     { name: t.analytics.neutral, value: neutral, color: '#94a3b8' },
-    { name: t.analytics.negative, value: negative, color: '#ef4444' },
-  ].filter(d => d.value > 0)
+    { name: t.analytics.negative, value: '#ef4444' },
+  ].map((d, i) => {
+      if (i === 0) return { name: t.analytics.positive, value: positive, color: '#10b981' }
+      if (i === 1) return { name: t.analytics.neutral, value: neutral, color: '#94a3b8' }
+      return { name: t.analytics.negative, value: negative, color: '#ef4444' }
+  }).filter(d => d.value > 0)
 
-  // 2. Semantic Clustering per Question
-  // Group embeddings by question_key
   const questionEmbeddings = new Map<string, typeof validEmbeddings>()
   for (const e of validEmbeddings) {
     if (!questionEmbeddings.has(e.question_key)) {
@@ -133,8 +136,6 @@ export default async function AnalyticsPage({ params }: Props) {
     questionEmbeddings.get(e.question_key)!.push(e)
   }
 
-  // To display clusters, we also need the actual text answers to show what the cluster contains!
-  // Let's fetch the responses that have these embeddings
   const responseIds = [...new Set(validEmbeddings.map(e => e.response_id))]
   let responsesMap = new Map<string, any>()
   if (responseIds.length > 0) {
@@ -159,13 +160,10 @@ export default async function AnalyticsPage({ params }: Props) {
   }> = []
 
   for (const [qKey, embs] of questionEmbeddings.entries()) {
-    if (embs.length < 2) continue // Too few to cluster
+    if (embs.length < 2) continue
 
-    // Run k-means
-    // k = sqrt(N)
     const k = Math.max(2, Math.floor(Math.sqrt(embs.length)))
     
-    // Parse embeddings (they are stored as JSON strings or arrays in Supabase pgvector)
     const dataMatrix = embs.map(e => 
       typeof e.embedding === 'string' ? JSON.parse(e.embedding) : e.embedding
     )
@@ -176,7 +174,6 @@ export default async function AnalyticsPage({ params }: Props) {
 
       const silhouette = calculateSilhouetteScore(dataMatrix, clusters)
 
-      // Group by cluster
       const grouped = new Map<number, string[]>()
       for (let i = 0; i < embs.length; i++) {
         const clusterId = clusters[i]
@@ -192,9 +189,8 @@ export default async function AnalyticsPage({ params }: Props) {
       const formattedClusters = Array.from(grouped.entries()).map(([cId, texts]) => ({
         id: cId,
         size: texts.length,
-        // take up to 3 sample answers to represent the cluster
         sampleAnswers: texts.slice(0, 3)
-      })).sort((a, b) => b.size - a.size) // sort largest cluster first
+      })).sort((a, b) => b.size - a.size)
 
       clusterResults.push({
         questionId: qKey,
@@ -208,127 +204,143 @@ export default async function AnalyticsPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9] text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex-1 overflow-y-auto bg-slate-50 font-sans">
+      <header className="sticky top-0 z-20 flex h-24 items-center justify-between border-b-2 border-slate-200 bg-white/90 px-8 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+          <Link
+            href={`/dashboard/${workspaceId}/forms/${formId}`}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-black transition-colors shadow-sm"
+          >
+            <ArrowLeft size={24} strokeWidth={3} />
+          </Link>
+          <div className="h-8 w-1 bg-slate-200 rounded-full"></div>
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Link
-                href={`/dashboard/${workspaceId}/forms/${formId}`}
-                className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 text-sm font-medium transition-colors"
-              >
-                <ArrowLeft size={16} />
-                {t.common.backToEditor}
-              </Link>
-              <div className="lg:hidden"><LanguageToggle /></div>
-            </div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
-                {t.analytics.title}
-              </h1>
-              <div className="hidden lg:block"><LanguageToggle /></div>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-2xl font-black text-slate-900 truncate max-w-sm">
               {form.title}
-            </p>
+            </h1>
+            <p className="text-lg font-bold text-slate-500">Analytics & Insights</p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={`/dashboard/${workspaceId}/forms/${formId}/responses`}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              {t.analytics.viewAllResponses}
-            </Link>
-          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <LanguageToggle />
+          <Link href={`/dashboard/${workspaceId}/forms/${formId}/responses`}>
+            <Button variant="outline" size="lg">
+              View All Responses
+            </Button>
+          </Link>
+          <DownloadPdfButton fileName={`${form.title} - AI Report.pdf`} />
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+      <main className="mx-auto max-w-7xl p-8 space-y-12">
         
-        {/* Top Metrics Cards */}
-        <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-slate-500">{t.analytics.totalResponses}</h3>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">{responsesCount || 0}</p>
-          </div>
+        <section className="grid gap-8 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-lg font-bold text-slate-500">Total Responses</CardTitle>
+              <FileText className="h-6 w-6 text-slate-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-5xl font-black text-slate-900">{responsesCount || 0}</div>
+            </CardContent>
+          </Card>
           
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-slate-500">{t.analytics.completionRate}</h3>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">100%</p>
-            <p className="mt-1 text-xs text-slate-400">{t.analytics.completionRateDesc}</p>
-          </div>
-          
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-slate-500">{t.analytics.aiAnalyzedAnswers}</h3>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">{validEmbeddings.length}</p>
-          </div>
-          
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-slate-500">{t.analytics.overallSentiment}</h3>
-            <div className="mt-2 flex items-baseline gap-2">
-              <p className="text-3xl font-semibold text-slate-900">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-lg font-bold text-slate-500">Completion Rate</CardTitle>
+              <TrendingUp className="h-6 w-6 text-slate-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-5xl font-black text-slate-900">100%</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-lg font-bold text-indigo-500">AI Analyzed</CardTitle>
+              <BrainCircuit className="h-6 w-6 text-indigo-500" strokeWidth={3} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-5xl font-black text-indigo-600">{validEmbeddings.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-lg font-bold text-slate-500">Overall Sentiment</CardTitle>
+              <BarChart3 className="h-6 w-6 text-slate-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-5xl font-black text-slate-900 capitalize">
                 {positive > negative ? t.analytics.positive : negative > positive ? t.analytics.negative : t.analytics.neutral}
-              </p>
-            </div>
-            <p className="mt-1 text-xs text-slate-400">{t.analytics.sentimentBasedOn}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-3xl font-black text-slate-900">{t.analytics.sentimentBreakdown}</CardTitle>
+              <CardDescription className="text-xl font-medium mt-2">Overall sentiment distribution across all text answers</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center py-10">
+              <SentimentPieChart data={sentimentData} />
+            </CardContent>
+          </Card>
+        </section>
+
+        <section>
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-900">{t.analytics.semanticClustersTitle}</h2>
+            <p className="text-xl text-slate-500 mt-2 font-medium">{t.analytics.semanticClustersDesc}</p>
           </div>
-        </div>
-
-        {/* Sentiment Chart */}
-        <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-lg font-semibold text-slate-900">{t.analytics.sentimentBreakdown}</h2>
-          <SentimentPieChart data={sentimentData} />
-        </div>
-
-        {/* Semantic Clusters */}
-        <div>
-          <h2 className="mb-6 text-lg font-semibold text-slate-900">{t.analytics.semanticClustersTitle}</h2>
-          <p className="mb-6 text-sm text-slate-500">
-            {t.analytics.semanticClustersDesc}
-          </p>
           
           {clusterResults.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500">
-              {t.analytics.notEnoughText}
-            </div>
+            <Card className="flex flex-col items-center justify-center p-20 text-center border-4 border-dashed border-slate-300 bg-white shadow-sm">
+              <div className="size-20 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400 mb-6">
+                <BrainCircuit size={40} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Not enough data</h3>
+              <p className="text-lg text-slate-500 max-w-md font-medium">{t.analytics.notEnoughText}</p>
+            </Card>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-8 md:grid-cols-2">
               {clusterResults.map(res => (
-                <div key={res.questionId} className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="border-b border-slate-100 p-5">
-                    <h3 className="font-medium text-slate-900 line-clamp-1" title={res.questionLabel}>
+                <Card key={res.questionId} className="flex flex-col overflow-hidden">
+                  <div className="border-b-2 border-slate-100 bg-slate-50 p-8">
+                    <h3 className="text-xl font-bold text-slate-900 line-clamp-2 leading-snug" title={res.questionLabel}>
                       {res.questionLabel}
                     </h3>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                        {t.analytics.silhouetteScore}: {res.silhouetteScore.toFixed(2)}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {res.silhouetteScore > 0.5 ? `(${t.analytics.strongClusters})` : res.silhouetteScore > 0.2 ? `(${t.analytics.fairClusters})` : `(${t.analytics.weakClusters})`}
+                    <div className="mt-4 flex items-center gap-4">
+                      <Badge variant={res.silhouetteScore > 0.5 ? 'success' : res.silhouetteScore > 0.2 ? 'warning' : 'danger'} className="text-base py-1 px-3">
+                        Score: {res.silhouetteScore.toFixed(2)}
+                      </Badge>
+                      <span className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+                        {res.silhouetteScore > 0.5 ? t.analytics.strongClusters : res.silhouetteScore > 0.2 ? t.analytics.fairClusters : t.analytics.weakClusters}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="flex-1 p-5">
-                    <div className="space-y-6">
+                  <CardContent className="flex-1 p-8 overflow-y-auto max-h-[500px]">
+                    <div className="space-y-8">
                       {res.clusters.map((cluster, i) => (
                         <div key={cluster.id}>
-                          <h4 className="mb-3 text-sm font-semibold text-slate-700 flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-500">
+                          <h4 className="mb-4 text-lg font-bold text-slate-900 flex items-center gap-3">
+                            <span className="flex size-8 items-center justify-center rounded-xl bg-black text-white text-sm font-black">
                               {i + 1}
                             </span>
-                            {t.analytics.themeGroup} ({cluster.size} {t.analytics.responseCount})
+                            {t.analytics.themeGroup} <span className="text-slate-400 ml-1">({cluster.size} {t.analytics.responseCount})</span>
                           </h4>
-                          <ul className="space-y-2 pl-8">
+                          <ul className="space-y-4 pl-10 border-l-4 border-slate-100 ml-4">
                             {cluster.sampleAnswers.map((answer, j) => (
-                              <li key={j} className="text-sm text-slate-600 relative">
-                                <span className="absolute -left-4 top-2 h-1 w-1 rounded-full bg-slate-300"></span>
-                                "{answer}"
+                              <li key={j} className="text-lg text-slate-700 font-medium relative">
+                                <span className="absolute -left-[46px] top-[10px] size-2 rounded-full bg-slate-300"></span>
+                                &ldquo;{answer}&rdquo;
                               </li>
                             ))}
                             {cluster.size > 3 && (
-                              <li className="text-xs text-slate-400 pl-2 italic">
+                              <li className="text-base font-bold text-indigo-500 pl-2 pt-2">
                                 + {cluster.size - 3} {t.analytics.moreSimilar}
                               </li>
                             )}
@@ -336,14 +348,22 @@ export default async function AnalyticsPage({ params }: Props) {
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
       </main>
+
+      <ReportTemplate 
+        form={form} 
+        responsesCount={responsesCount || 0}
+        validEmbeddingsCount={validEmbeddings.length}
+        sentimentData={sentimentData}
+        clusterResults={clusterResults}
+      />
     </div>
   )
 }

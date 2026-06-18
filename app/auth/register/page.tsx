@@ -5,6 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/client'
 import LanguageToggle from '@/app/components/LanguageToggle'
+import Link from 'next/link'
+import { Sparkles, ArrowRight } from 'lucide-react'
+import { Button } from '@/app/components/ui/Button'
+import { Input } from '@/app/components/ui/Input'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -35,71 +39,98 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ maxWidth: 460, margin: '100px auto', padding: '0 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <LanguageToggle />
+    <div className="flex min-h-screen bg-white font-sans">
+      {/* Left side: branding/image area (desktop only) */}
+      <div className="hidden w-1/2 flex-col justify-between bg-slate-50 p-16 lg:flex border-r-2 border-slate-200">
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center gap-4 w-fit">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-black text-white">
+              <Sparkles size={28} strokeWidth={3} />
+            </div>
+            <span className="text-3xl font-black tracking-tight text-slate-900">FormBuilder</span>
+          </Link>
+        </div>
+
+        <div className="relative z-10 mt-auto mb-32">
+          <blockquote className="space-y-6 max-w-xl">
+            <p className="text-5xl font-bold leading-tight text-slate-900">
+              The fastest way to build forms that convert.
+            </p>
+            <p className="text-2xl text-slate-500 font-medium leading-relaxed">
+              Stop fighting with clunky interfaces. AI FormBuilder is designed for speed, beauty, and massive scale.
+            </p>
+          </blockquote>
+        </div>
       </div>
-      
-      <h1 style={{ marginBottom: 32, fontSize: 28, fontWeight: 700, color: '#111827' }}>
-        {t.auth.registerTitle}
-      </h1>
-      
-      <form onSubmit={handleRegister}>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-            {t.auth.email}
-          </label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            style={{ 
-              width: '100%', padding: '12px 16px', fontSize: 16, 
-              boxSizing: 'border-box', border: '1px solid #d1d5db', 
-              borderRadius: 8, outline: 'none'
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500, color: '#374151' }}>
-            {t.auth.passwordRegister}
-          </label>
-          <input
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            minLength={6}
-            style={{ 
-              width: '100%', padding: '12px 16px', fontSize: 16, 
-              boxSizing: 'border-box', border: '1px solid #d1d5db', 
-              borderRadius: 8, outline: 'none'
-            }}
-          />
+
+      {/* Right side: register form */}
+      <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 xl:px-32">
+        <div className="absolute right-8 top-8">
+          <LanguageToggle />
         </div>
         
-        {error && <p style={{ color: '#ef4444', fontSize: 14, marginBottom: 16 }}>{error}</p>}
-        
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ 
-            width: '100%', padding: '12px 16px', background: '#0f172a', 
-            color: '#fff', border: 'none', borderRadius: 8, 
-            fontSize: 16, fontWeight: 500, cursor: 'pointer',
-            transition: 'background 0.2s'
-          }}
-        >
-          {loading ? t.auth.registeringBtn : t.auth.registerBtn}
-        </button>
-      </form>
-      
-      <p style={{ marginTop: 24, fontSize: 15, textAlign: 'center', color: '#4b5563' }}>
-        {t.auth.haveAccount} <a href="/auth/login" style={{ color: '#4f46e5', fontWeight: 500, textDecoration: 'none' }}>{t.auth.signInLink}</a>
-      </p>
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-12 lg:hidden">
+            <Link href="/" className="flex items-center gap-4 w-fit">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-black text-white">
+                <Sparkles size={24} strokeWidth={3} />
+              </div>
+              <span className="text-2xl font-black tracking-tight text-slate-900">FormBuilder</span>
+            </Link>
+          </div>
+
+          <div className="mb-12">
+            <h1 className="text-4xl font-black tracking-tight text-slate-900">{t.auth.registerTitle}</h1>
+            <p className="mt-4 text-lg font-medium text-slate-500">
+              Create an account to start building AI-powered forms in seconds.
+            </p>
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-6">
+            <Input
+              label={t.auth.email}
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+            
+            <Input
+              label={t.auth.passwordRegister}
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+
+            {error && (
+              <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4 text-base font-bold text-red-600">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full mt-4"
+              size="xl"
+              isLoading={loading}
+              rightIcon={<ArrowRight size={24} strokeWidth={3} />}
+            >
+              {loading ? t.auth.registeringBtn : t.auth.registerBtn}
+            </Button>
+          </form>
+
+          <p className="mt-12 text-center text-lg font-medium text-slate-500">
+            {t.auth.haveAccount}{' '}
+            <Link href="/auth/login" className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline">
+              {t.auth.signInLink}
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

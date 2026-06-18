@@ -34,6 +34,7 @@ export default function PublicFormPage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
+  const [userEmail, setUserEmail] = useState('')
   const supabase = useMemo(() => createClient(), [])
   const { t } = useTranslation()
 
@@ -99,6 +100,11 @@ export default function PublicFormPage({ params }: Props) {
         newErrors[q.id] = t.publicForm.questionRequired
       }
     }
+    if (form?.schema?.settings?.requireEmail) {
+      if (!userEmail || !/^\S+@\S+\.\S+$/.test(userEmail)) {
+        newErrors['email'] = 'A valid email address is required'
+      }
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -114,6 +120,7 @@ export default function PublicFormPage({ params }: Props) {
         form_id: formId,
         answers: filterAnswersForQuestions(answers, visibleQuestions),
         respondent_meta: {
+          ...(form?.schema?.settings?.requireEmail ? { email: userEmail.trim().toLowerCase() } : {}),
           user_agent: navigator.userAgent,
           submitted_at: new Date().toISOString(),
         },
@@ -123,7 +130,11 @@ export default function PublicFormPage({ params }: Props) {
 
     setSubmitting(false)
     if (error) {
-      alert(t.publicForm.failedSubmit + error.message)
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        alert('A user with this email has already submitted this form.')
+      } else {
+        alert(t.publicForm.failedSubmit + error.message)
+      }
     } else {
       setSubmitted(true)
       
@@ -307,6 +318,31 @@ export default function PublicFormPage({ params }: Props) {
           )}
         </div>
       ))}
+
+      {questions.length > 0 && form?.schema?.settings?.requireEmail && (
+        <div style={{ marginBottom: 28, paddingTop: 20, borderTop: '1px solid #eee' }}>
+          <label style={{
+            display: 'block', fontSize: 15, fontWeight: 500,
+            marginBottom: 8, color: '#1a1a1a',
+          }}>
+            Your Email Address <span style={{ color: '#dc2626', marginLeft: 4 }}>*</span>
+          </label>
+          <input
+            type="email"
+            value={userEmail}
+            onChange={e => setUserEmail(e.target.value)}
+            placeholder="you@example.com"
+            style={{
+              width: '100%', padding: '10px 14px', fontSize: 14,
+              border: `1px solid ${errors['email'] ? '#fca5a5' : '#e0e0e0'}`,
+              borderRadius: 8, boxSizing: 'border-box', outline: 'none',
+            }}
+          />
+          {errors['email'] && (
+            <p style={{ fontSize: 12, color: '#dc2626', marginTop: 5 }}>{errors['email']}</p>
+          )}
+        </div>
+      )}
 
       {/* Submit button */}
       {questions.length > 0 && (

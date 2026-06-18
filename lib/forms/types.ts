@@ -18,6 +18,9 @@ export interface Question {
 
 export interface FormSchema {
   questions: Question[]
+  settings?: {
+    requireEmail?: boolean
+  }
 }
 
 export type LogicOperator = 'equals'

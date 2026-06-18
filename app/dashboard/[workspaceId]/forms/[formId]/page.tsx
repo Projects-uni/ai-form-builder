@@ -10,20 +10,25 @@ import {
   reconcileLogicGraph,
   setQuestionCondition,
 } from '@/lib/forms/logic'
-import type { LogicGraph, Question, QuestionType } from '@/lib/forms/types'
+import { type QuestionType, type Question, type FormSchema, type LogicGraph } from '@/lib/forms/types'
 import AiGenerateModal from '@/app/components/AiGenerateModal'
 import { useTranslation } from '@/lib/i18n/client'
 import LanguageToggle from '@/app/components/LanguageToggle'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Settings, Plus, Sparkles, Check, Share, GripVertical, Trash2, ChevronDown, ChevronUp, Copy, Eye, MessageSquare, Bot, ClipboardList, X, BarChart3, Inbox } from 'lucide-react'
+import { Button } from '@/app/components/ui/Button'
+import { Input } from '@/app/components/ui/Input'
+import { Card, CardContent } from '@/app/components/ui/Card'
+import { Modal } from '@/app/components/ui/Modal'
+import { Badge } from '@/app/components/ui/Badge'
 
 interface Form {
   id: string
   workspace_id: string
   title: string
   description: string | null
-  schema: unknown
-  logic_graph: unknown
+  schema: FormSchema
+  logic_graph: LogicGraph
   is_published: boolean
   created_at: string
 }
@@ -58,7 +63,6 @@ function generateOptionId() {
   return 'o_' + Math.random().toString(36).slice(2, 9)
 }
 
-// ── Question Card ──────────────────────────────────────
 function QuestionCard({
   question,
   index,
@@ -114,261 +118,208 @@ function QuestionCard({
   }
 
   return (
-    <div style={{
-      border: '1px solid #e0e0e0',
-      borderRadius: 10,
-      marginBottom: 12,
-      background: '#fff',
-      overflow: 'hidden',
-    }}>
-      {/* Card header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '12px 16px',
-        background: '#fafafa',
-        borderBottom: expanded ? '1px solid #f0f0f0' : 'none',
-        cursor: 'pointer',
-      }}
-        onClick={() => setExpanded(e => !e)}
+    <Card className={`mb-6 transition-all duration-200 shadow-xl ${expanded ? 'ring-4 ring-black border-black' : 'border-2 border-slate-200 hover:border-black'}`}>
+      <div 
+        className={`flex items-center gap-4 p-6 cursor-pointer select-none transition-colors ${expanded ? 'bg-slate-50 border-b-2 border-slate-200 rounded-t-2xl' : 'hover:bg-slate-50 rounded-2xl'}`}
+        onClick={() => setExpanded(!expanded)}
       >
-        <span style={{ fontSize: 12, color: '#bbb', width: 20, textAlign: 'center', flexShrink: 0 }}>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-black text-lg font-black text-white">
           {index + 1}
         </span>
-        <span style={{ fontSize: 13, color: '#888', width: 20, textAlign: 'center', flexShrink: 0 }}>
+        <span className="flex size-10 shrink-0 items-center justify-center text-xl font-black text-slate-500 bg-slate-200 rounded-xl">
           {TYPE_ICONS[question.type]}
         </span>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: question.label ? '#1a1a1a' : '#bbb' }}>
+        <span className={`flex-1 truncate text-xl font-bold ${question.label ? 'text-slate-900' : 'text-slate-400'}`}>
           {question.label || t.formEditor.untitledQuestion}
         </span>
-        <span style={{ fontSize: 11, color: '#bbb', background: '#f0f0f0', padding: '2px 8px', borderRadius: 99 }}>
-          {getTypeLabels(t)[question.type]}
+        <Badge variant="secondary" className="hidden sm:inline-flex text-base py-1 px-3">{getTypeLabels(t)[question.type]}</Badge>
+        {question.required && <Badge variant="danger" className="text-base py-1 px-3">Required</Badge>}
+        <span className="text-black shrink-0 ml-4 bg-slate-200 p-2 rounded-xl">
+          {expanded ? <ChevronUp size={24} strokeWidth={3} /> : <ChevronDown size={24} strokeWidth={3} />}
         </span>
-        {question.required && (
-          <span style={{ fontSize: 11, color: '#dc2626' }}>required</span>
-        )}
-        <span style={{ fontSize: 14, color: '#bbb', marginLeft: 4 }}>{expanded ? '▲' : '▼'}</span>
       </div>
 
-      {/* Card body */}
       {expanded && (
-        <div style={{ padding: '24px' }}>
-
-          {/* Question label */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: '#666', marginBottom: 8 }}>
-              {t.formEditor.questionText}
-            </label>
-            <input
-              type="text"
-              value={question.label}
-              onChange={e => updateLabel(e.target.value)}
-              placeholder={t.formEditor.untitledQuestion}
-              style={{
-                width: '100%', padding: '12px 16px', fontSize: 15,
-                border: '1px solid #e0e0e0', borderRadius: 8,
-                boxSizing: 'border-box', outline: 'none',
-              }}
-            />
-          </div>
-
-          {/* Question type */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: '#666', marginBottom: 8 }}>
-              Question type
-            </label>
-            <select
-              value={question.type}
-              onChange={e => updateType(e.target.value as QuestionType)}
-              style={{
-                padding: '12px 16px', fontSize: 15,
-                border: '1px solid #e0e0e0', borderRadius: 8,
-                background: '#fff', outline: 'none', cursor: 'pointer',
-              }}
-            >
-              {(Object.keys(getTypeLabels(t)) as QuestionType[]).map(qType => (
-                <option key={qType} value={qType}>{TYPE_ICONS[qType]} {getTypeLabels(t)[qType]}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Multiple choice options */}
-          {question.type === 'multiple_choice' && (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#666', marginBottom: 8 }}>
-                Options
-              </label>
-              {(question.options ?? []).map(opt => (
-                <div key={opt.id} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: '#bbb' }}>◉</span>
-                  <input
-                    type="text"
-                    value={opt.label}
-                    onChange={e => updateOption(opt.id, e.target.value)}
-                    style={{
-                      flex: 1, padding: '7px 10px', fontSize: 13,
-                      border: '1px solid #e8e8e8', borderRadius: 6,
-                      outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={() => removeOption(opt.id)}
-                    style={{ background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}
-                  >×</button>
-                </div>
-              ))}
-              <button
-                onClick={addOption}
-                style={{
-                  fontSize: 13, color: '#666', background: 'none',
-                  border: '1px dashed #ccc', borderRadius: 6,
-                  padding: '6px 12px', cursor: 'pointer', marginTop: 4,
-                }}
-              >
-                + {t.formEditor.addOption}
-              </button>
-            </div>
-          )}
-
-          {/* Rating max */}
-          {question.type === 'rating' && (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#666', marginBottom: 5 }}>
-                {t.formEditor.maxRating}
-              </label>
-              <select
-                value={question.max ?? 5}
-                onChange={e => onChange({ ...question, max: parseInt(e.target.value) })}
-                style={{ padding: '9px 12px', fontSize: 14, border: '1px solid #e0e0e0', borderRadius: 7, background: '#fff', outline: 'none' }}
-              >
-                {[3, 4, 5, 7, 10].map(n => (
-                  <option key={n} value={n}>{n} {t.formEditor.stars}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Required toggle + actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 13, color: '#555' }}>
-              <input
-                type="checkbox"
-                checked={question.required}
-                onChange={e => updateRequired(e.target.checked)}
-              />
-              Required
-            </label>
-
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={onMoveUp}
-                disabled={index === 0}
-                title={t.formEditor.moveUp}
-                style={{
-                  padding: '5px 10px', fontSize: 13, borderRadius: 6,
-                  border: '1px solid #e0e0e0', background: '#fff',
-                  cursor: index === 0 ? 'not-allowed' : 'pointer',
-                  color: index === 0 ? '#ccc' : '#555',
-                }}
-              >{t.formEditor.moveUp === 'Yukarı taşı' ? '↑' : '↑'}</button>
-              <button
-                onClick={onMoveDown}
-                disabled={index === total - 1}
-                title={t.formEditor.moveDown}
-                style={{
-                  padding: '5px 10px', fontSize: 13, borderRadius: 6,
-                  border: '1px solid #e0e0e0', background: '#fff',
-                  cursor: index === total - 1 ? 'not-allowed' : 'pointer',
-                  color: index === total - 1 ? '#ccc' : '#555',
-                }}
-              >↓</button>
-              <button
-                onClick={onDelete}
-                title="Delete question"
-                style={{
-                  padding: '5px 10px', fontSize: 13, borderRadius: 6,
-                  border: '1px solid #fecaca', background: '#fff',
-                  cursor: 'pointer', color: '#dc2626',
-                }}
-              >{t.formEditor.delete}</button>
-            </div>
-          </div>
-
-          {/* Conditional logic */}
-          <div style={{
-            marginTop: 16,
-            paddingTop: 14,
-            borderTop: '1px solid #f0f0f0',
-          }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#666', marginBottom: 6 }}>
-              {t.formEditor.conditionalDisplay}
-            </label>
-            {index === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: '#999' }}>
-                {t.formEditor.firstQuestionAlwaysShown}
-              </p>
-            ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+        <CardContent className="p-8 bg-white rounded-b-2xl">
+          <div className="space-y-8">
+            
+            <div className="grid gap-8 md:grid-cols-[1fr_250px]">
+              <div>
+                <Input
+                  label="Question Text"
+                  value={question.label}
+                  onChange={e => updateLabel(e.target.value)}
+                  placeholder={t.formEditor.untitledQuestion}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-base font-bold text-slate-900">Question Type</label>
                 <select
-                  value={incomingEdge?.source ?? ''}
-                  onChange={e => onConditionChange(question.id, e.target.value, '')}
-                  style={{ padding: '9px 12px', fontSize: 13, border: '1px solid #e0e0e0', borderRadius: 7, background: '#fff' }}
+                  value={question.type}
+                  onChange={e => updateType(e.target.value as QuestionType)}
+                  className="w-full h-14 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-lg font-medium focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 cursor-pointer"
                 >
-                  <option value="">{t.formEditor.alwaysShow}</option>
-                  {sourceCandidates.map(source => (
-                    <option key={source.id} value={source.id}>
-                      {t.formEditor.showOnlyIf}: {source.label || t.formEditor.untitledQuestion}
-                    </option>
+                  {(Object.keys(getTypeLabels(t)) as QuestionType[]).map(qType => (
+                    <option key={qType} value={qType}>{TYPE_ICONS[qType]} {getTypeLabels(t)[qType]}</option>
                   ))}
                 </select>
+              </div>
+            </div>
 
-                {incomingEdge && sourceQuestion && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#777' }}>{t.formEditor.equals}</span>
-                    {sourceQuestion.type === 'multiple_choice' ? (
-                      <select
-                        value={incomingEdge.value}
-                        onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
-                        style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid #e0e0e0', borderRadius: 7, background: '#fff' }}
-                      >
-                        <option value="">{t.formEditor.chooseAnswer}</option>
-                        {(sourceQuestion.options ?? []).map(option => (
-                          <option key={option.id} value={option.id}>{option.label}</option>
-                        ))}
-                      </select>
-                    ) : sourceQuestion.type === 'rating' ? (
-                      <select
-                        value={incomingEdge.value}
-                        onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
-                        style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid #e0e0e0', borderRadius: 7, background: '#fff' }}
-                      >
-                        <option value="">{t.formEditor.chooseRating}</option>
-                        {Array.from({ length: sourceQuestion.max ?? 5 }, (_, i) => i + 1).map(value => (
-                          <option key={value} value={String(value)}>{value}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={incomingEdge.value}
-                        onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
-                        placeholder={t.formEditor.expectedAnswer}
-                        style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1px solid #e0e0e0', borderRadius: 7, outline: 'none' }}
+            {question.type === 'multiple_choice' && (
+              <div className="bg-slate-50 rounded-2xl p-6 border-2 border-slate-200">
+                <label className="mb-4 block text-lg font-bold text-slate-900">Options</label>
+                <div className="space-y-4">
+                  {(question.options ?? []).map(opt => (
+                    <div key={opt.id} className="flex items-center gap-4">
+                      <div className="size-6 shrink-0 rounded-full border-4 border-slate-300 bg-white" />
+                      <Input
+                        value={opt.label}
+                        onChange={e => updateOption(opt.id, e.target.value)}
+                        className="bg-white"
                       />
-                    )}
-                  </div>
-                )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeOption(opt.id)}
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <X size={24} strokeWidth={3} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="outline" size="md" onClick={addOption} className="mt-6" leftIcon={<Plus size={20} strokeWidth={3} />}>
+                  {t.formEditor.addOption}
+                </Button>
               </div>
             )}
-          </div>
 
-        </div>
+            {question.type === 'rating' && (
+              <div className="bg-slate-50 rounded-2xl p-6 border-2 border-slate-200 w-fit">
+                <label className="mb-3 block text-lg font-bold text-slate-900">{t.formEditor.maxRating}</label>
+                <select
+                  value={question.max ?? 5}
+                  onChange={e => onChange({ ...question, max: parseInt(e.target.value) })}
+                  className="w-40 h-14 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-lg font-bold focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+                >
+                  {[3, 4, 5, 7, 10].map(n => (
+                    <option key={n} value={n}>{n} {t.formEditor.stars}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t-2 border-slate-100">
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={question.required}
+                    onChange={e => updateRequired(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className="h-8 w-14 rounded-full bg-slate-200 transition-colors peer-checked:bg-black"></div>
+                  <div className="absolute left-[4px] top-[4px] h-6 w-6 rounded-full bg-white transition-transform peer-checked:translate-x-6"></div>
+                </div>
+                <span className="text-lg font-bold text-slate-600 group-hover:text-black transition-colors">Required Field</span>
+              </label>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center rounded-xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+                  <button
+                    onClick={onMoveUp}
+                    disabled={index === 0}
+                    className="p-3 text-slate-500 hover:bg-slate-100 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed border-r-2 border-slate-200 transition-colors"
+                  >
+                    <ChevronUp size={24} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={onMoveDown}
+                    disabled={index === total - 1}
+                    className="p-3 text-slate-500 hover:bg-slate-100 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronDown size={24} strokeWidth={3} />
+                  </button>
+                </div>
+                <Button
+                  variant="danger"
+                  size="icon"
+                  onClick={onDelete}
+                >
+                  <Trash2 size={24} strokeWidth={3} />
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-8 border-t-2 border-slate-100">
+              <label className="mb-4 block text-lg font-bold text-slate-900">
+                {t.formEditor.conditionalDisplay}
+              </label>
+              {index === 0 ? (
+                <p className="text-base font-medium text-slate-500 italic bg-slate-50 p-4 rounded-xl border-2 border-slate-100">
+                  {t.formEditor.firstQuestionAlwaysShown}
+                </p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <select
+                    value={incomingEdge?.source ?? ''}
+                    onChange={e => onConditionChange(question.id, e.target.value, '')}
+                    className="w-full h-14 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-base font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+                  >
+                    <option value="">{t.formEditor.alwaysShow}</option>
+                    {sourceCandidates.map(source => (
+                      <option key={source.id} value={source.id}>
+                        {t.formEditor.showOnlyIf}: {source.label || t.formEditor.untitledQuestion}
+                      </option>
+                    ))}
+                  </select>
+
+                  {incomingEdge && sourceQuestion && (
+                    <div className="flex items-center gap-4">
+                      <span className="text-base font-black text-slate-400 shrink-0">{t.formEditor.equals}</span>
+                      {sourceQuestion.type === 'multiple_choice' ? (
+                        <select
+                          value={incomingEdge.value}
+                          onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
+                          className="w-full h-14 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-base font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+                        >
+                          <option value="">{t.formEditor.chooseAnswer}</option>
+                          {(sourceQuestion.options ?? []).map(option => (
+                            <option key={option.id} value={option.id}>{option.label}</option>
+                          ))}
+                        </select>
+                      ) : sourceQuestion.type === 'rating' ? (
+                        <select
+                          value={incomingEdge.value}
+                          onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
+                          className="w-full h-14 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-base font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+                        >
+                          <option value="">{t.formEditor.chooseRating}</option>
+                          {Array.from({ length: sourceQuestion.max ?? 5 }, (_, i) => i + 1).map(value => (
+                            <option key={value} value={String(value)}>{value}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          value={incomingEdge.value}
+                          onChange={e => onConditionChange(question.id, incomingEdge.source, e.target.value)}
+                          placeholder={t.formEditor.expectedAnswer}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   )
 }
 
-// ── Main Page ──────────────────────────────────────────
 export default function FormEditorPage({ params }: Props) {
   const { t } = useTranslation()
   const [workspaceId, setWorkspaceId] = useState<string | null>(null)
@@ -382,11 +333,11 @@ export default function FormEditorPage({ params }: Props) {
   const [error, setError] = useState('')
   const [shareStatus, setShareStatus] = useState('')
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
-  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false)
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
-  // Resolve params
   useEffect(() => {
     params.then(p => {
       setWorkspaceId(p.workspaceId)
@@ -394,7 +345,6 @@ export default function FormEditorPage({ params }: Props) {
     })
   }, [params])
 
-  // Load form
   useEffect(() => {
     if (!formId || !workspaceId) return
     supabase
@@ -414,7 +364,6 @@ export default function FormEditorPage({ params }: Props) {
       })
   }, [formId, workspaceId, router, supabase])
 
-  // Save schema to Supabase
   const saveFormEngine = useCallback(async (qs: Question[], graph: LogicGraph) => {
     if (!formId) return
     const reconciledGraph = reconcileLogicGraph({ questions: qs }, graph)
@@ -501,8 +450,36 @@ export default function FormEditorPage({ params }: Props) {
       .from('forms')
       .update({ is_published: !form.is_published })
       .eq('id', formId)
-    if (!error) setForm({ ...form, is_published: !form.is_published })
+    if (!error) {
+      setForm({ ...form, is_published: !form.is_published })
+      if (!form.is_published) {
+        setIsPublishModalOpen(true)
+      } else {
+        setIsSettingsModalOpen(false)
+      }
+    }
     setPublishing(false)
+  }
+
+  async function toggleRequireEmail() {
+    if (!formId || !form) return
+    const currentSetting = form.schema.settings?.requireEmail || false
+    const newSchema = {
+      ...form.schema,
+      settings: { ...form.schema.settings, requireEmail: !currentSetting }
+    }
+    
+    setForm({ ...form, schema: newSchema })
+    
+    const { error } = await supabase
+      .from('forms')
+      .update({ schema: newSchema })
+      .eq('id', formId)
+      
+    if (error) {
+      alert('Failed to save settings: ' + error.message)
+      setForm({ ...form })
+    }
   }
 
   async function shareForm() {
@@ -513,232 +490,311 @@ export default function FormEditorPage({ params }: Props) {
       try {
         await navigator.share({ title: form?.title ?? 'Form', url: shareUrl })
         return
-      } catch {
-      }
+      } catch {}
     }
 
     await navigator.clipboard.writeText(shareUrl)
-    setShareStatus('Copied')
-    setTimeout(() => setShareStatus(''), 1800)
+    setShareStatus('Copied link')
+    setTimeout(() => setShareStatus(''), 2000)
+  }
+
+  async function updateFormTitle(title: string) {
+    if (!form || !formId) return
+    setForm({ ...form, title })
+    setSaving(true)
+    const { error } = await supabase.from('forms').update({ title }).eq('id', formId)
+    setSaving(false)
+    if (error) setError(error.message)
+    else { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  }
+
+  async function updateFormDescription(description: string) {
+    if (!form || !formId) return
+    setForm({ ...form, description })
+    setSaving(true)
+    const { error } = await supabase.from('forms').update({ description }).eq('id', formId)
+    setSaving(false)
+    if (error) setError(error.message)
+    else { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  }
+
+  async function shareChatForm() {
+    if (!formId) return
+    const shareUrl = `${window.location.origin}/chat/${formId}`
+
+    await navigator.clipboard.writeText(shareUrl)
+    setShareStatus('Copied chat link')
+    setTimeout(() => setShareStatus(''), 2000)
   }
 
   if (!form) return (
-    <div style={{ padding: 40, textAlign: 'center', color: '#999', fontSize: 14 }}>
-      {t.common.loading}
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex flex-col items-center gap-4">
+        <svg className="h-10 w-10 animate-spin text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span className="text-lg font-bold text-slate-500">Loading editor...</span>
+      </div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9f9f9' }}>
-
-      {/* Top bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '13px 24px', borderBottom: '1px solid #e0e0e0',
-        position: 'sticky', top: 0, background: '#fff', zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href={`/dashboard/${workspaceId}`} className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 text-sm font-medium transition-colors">
-            <ArrowLeft size={16} />
-            {t.common.back}
-          </Link>
+    <div className="flex flex-col flex-1 bg-slate-100">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-20 flex h-24 items-center justify-between border-b-2 border-slate-200 bg-white/90 px-6 md:px-10 backdrop-blur-md">
+        <div className="flex items-center gap-6">
           <LanguageToggle />
-          <span style={{ color: '#e0e0e0' }}>|</span>
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{form.title}</span>
-          <span style={{
-            fontSize: 11, padding: '2px 8px', borderRadius: 99,
-            background: form.is_published ? '#e1f5ee' : '#f4f4f5',
-            color: form.is_published ? '#085041' : '#666',
-          }}>
-            {form.is_published ? t.common.published : t.common.draft}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {saving && <span style={{ fontSize: 12, color: '#999' }}>{t.common.saving}</span>}
-          {saved && <span style={{ fontSize: 12, color: '#22c55e' }}>✓ {t.common.saved}</span>}
-          {error && <span style={{ fontSize: 12, color: '#dc2626' }}>{error}</span>}
-
-          <a
-            href={`/f/${formId}`}
-            target="_blank"
-            style={{
-              padding: '7px 14px', fontSize: 13,
-              border: '1px solid #e0e0e0', borderRadius: 6,
-              textDecoration: 'none', color: '#333',
-            }}
-          >
-            {t.common.preview} ↗
-          </a>
-
-          <a
-            href={`/dashboard/${workspaceId}/forms/${formId}/responses`}
-            style={{
-              padding: '7px 14px', fontSize: 13,
-              border: '1px solid #e0e0e0', borderRadius: 6,
-              textDecoration: 'none', color: '#333',
-            }}
-          >
-            Responses
-          </a>
-
-          <a
-            href={`/dashboard/${workspaceId}/forms/${formId}/analytics`}
-            style={{
-              padding: '7px 14px', fontSize: 13,
-              border: '1px solid #e0e0e0', borderRadius: 6,
-              textDecoration: 'none', color: '#333',
-              background: '#f8f8ff', borderColor: '#c7d2fe',
-            }}
-          >
-            Analytics
-          </a>
-
-          {form.is_published && (
-            <>
-              <button
-                onClick={() => setIsEmbedModalOpen(true)}
-                style={{
-                  padding: '7px 14px', fontSize: 13,
-                  border: '1px solid #e0e0e0', borderRadius: 6,
-                  background: '#fff', color: '#333', cursor: 'pointer',
-                }}
-              >
-                Embed
-              </button>
-              <button
-                onClick={shareForm}
-                style={{
-                  padding: '7px 14px', fontSize: 13,
-                  border: '1px solid #e0e0e0', borderRadius: 6,
-                  background: '#fff', color: '#333', cursor: 'pointer',
-                }}
-              >
-                {shareStatus || t.common.share}
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={togglePublish}
-            disabled={publishing || questions.length === 0}
-            style={{
-              padding: '7px 16px', fontSize: 13, borderRadius: 6, border: 'none',
-              background: form.is_published ? '#fee2e2' : '#18181b',
-              color: form.is_published ? '#dc2626' : '#fff',
-              cursor: questions.length === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {publishing ? '...' : form.is_published ? t.common.unpublish : t.common.publish}
-          </button>
-        </div>
-      </div>
-
-      {/* Editor */}
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px' }}>
-
-        <h2 style={{ fontSize: 26, fontWeight: 600, marginBottom: 8 }}>{form.title}</h2>
-        {form.description && (
-          <p style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>{form.description}</p>
-        )}
-
-        {/* Questions */}
-        {questions.length === 0 ? (
-          <div style={{
-            border: '2px dashed #e0e0e0', borderRadius: 12,
-            padding: '48px 24px', textAlign: 'center', marginBottom: 20,
-          }}>
-            <p style={{ fontSize: 15, color: '#999', marginBottom: 6 }}>{t.formEditor.noQuestionsYet}</p>
-            <p style={{ fontSize: 13, color: '#bbb' }}>{t.formEditor.clickToAdd}</p>
+          <div className="h-8 w-1 bg-slate-200 hidden sm:block rounded-full"></div>
+          <div className="flex items-center gap-3">
+            {saved ? (
+              <span className="flex items-center gap-2 text-lg font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl">
+                <Check size={20} strokeWidth={3} /> Saved
+              </span>
+            ) : saving ? (
+              <span className="flex items-center gap-2 text-lg font-bold text-slate-500 bg-slate-50 px-4 py-2 rounded-xl">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-slate-400"></span>
+                </span>
+                Saving...
+              </span>
+            ) : null}
           </div>
-        ) : (
-          questions.map((q, i) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              index={i}
-              total={questions.length}
-              onChange={updated => updateQuestion(i, updated)}
-              onDelete={() => deleteQuestion(i)}
-              onMoveUp={() => moveQuestion(i, 'up')}
-              onMoveDown={() => moveQuestion(i, 'down')}
-              allQuestions={questions}
-              logicGraph={logicGraph}
-              onConditionChange={updateCondition}
-              t={t}
-            />
-          ))
-        )}
-
-        {/* Add question button */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            onClick={addQuestion}
-            style={{
-              flex: 1, padding: '12px', fontSize: 14, fontWeight: 500,
-              border: '1px dashed #ccc', borderRadius: 10,
-              background: '#fff', cursor: 'pointer', color: '#555',
-            }}
-          >
-            + {t.formEditor.addQuestion}
-          </button>
-          <button
-            onClick={() => setIsAiModalOpen(true)}
-            style={{
-              padding: '12px 16px', fontSize: 13,
-              border: '1px dashed #c7d2fe', borderRadius: 10,
-              background: '#f8f8ff', cursor: 'pointer', color: '#4f46e5',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            ✨ {t.formEditor.generateWithAI}
-          </button>
         </div>
 
-        {/* Questions count */}
-        {questions.length > 0 && (
-          <p style={{ fontSize: 12, color: '#bbb', textAlign: 'center', marginTop: 20 }}>
-            {questions.length} question{questions.length !== 1 ? 's' : ''} · {t.formEditor.autoSaved}
-          </p>
-        )}
+        <div className="flex items-center gap-4">
+          <Link href={`/dashboard/${workspaceId}/forms/${formId}/responses`}>
+            <Button variant="ghost" size="lg" leftIcon={<Inbox size={20} strokeWidth={3} />}>
+              <span className="hidden xl:inline">Responses</span>
+            </Button>
+          </Link>
 
-      </div>
+          <Link href={`/dashboard/${workspaceId}/forms/${formId}/analytics`}>
+            <Button variant="ghost" size="lg" leftIcon={<BarChart3 size={20} strokeWidth={3} />}>
+              <span className="hidden xl:inline">Analytics</span>
+            </Button>
+          </Link>
 
-      <AiGenerateModal
-        open={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        onQuestionsGenerated={handleAIGenerated}
-      />
+          <div className="w-1 h-8 bg-slate-200 rounded-full mx-2 hidden lg:block"></div>
+          <Button variant="secondary" size="lg" onClick={() => setIsSettingsModalOpen(true)} leftIcon={<Settings size={20} strokeWidth={3} />}>
+            <span className="hidden xl:inline">Settings</span>
+          </Button>
 
-      {isEmbedModalOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
-        }}>
-          <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 500, maxWidth: '90%' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Embed Form</h3>
-            <p style={{ fontSize: 14, color: '#666', marginBottom: 12 }}>Copy the code below to embed this form on your website.</p>
-            <textarea
-              readOnly
-              value={`<iframe src="${window.location.origin}/f/${formId}" width="100%" height="600px" frameborder="0" style="border:none;"></iframe>`}
-              style={{ width: '100%', height: 100, padding: 12, fontSize: 13, fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: 6, marginBottom: 16 }}
-              onClick={e => (e.target as HTMLTextAreaElement).select()}
+          {form.is_published ? (
+            <div className="flex items-center gap-4">
+              <Button size="lg" onClick={() => setIsPublishModalOpen(true)} leftIcon={<Share size={20} strokeWidth={3} />}>
+                Share Form
+              </Button>
+            </div>
+          ) : (
+            <Button size="lg" onClick={togglePublish} isLoading={publishing} leftIcon={<Sparkles size={20} strokeWidth={3} />}>
+              Publish Form
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {/* Editor Canvas */}
+      <main className="flex-1 overflow-y-auto p-6 md:p-12">
+        <div className="mx-auto max-w-4xl">
+          
+          <div className="mb-16 text-center space-y-6">
+            <input
+              type="text"
+              value={form.title}
+              onChange={e => updateFormTitle(e.target.value)}
+              placeholder="Form title"
+              className="w-full text-center text-6xl font-black tracking-tight text-slate-900 bg-transparent border-none outline-none placeholder:text-slate-300 transition-colors focus:placeholder:opacity-0"
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button onClick={() => setIsEmbedModalOpen(false)} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Close</button>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(`<iframe src="${window.location.origin}/f/${formId}" width="100%" height="600px" frameborder="0" style="border:none;"></iframe>`);
-                  setShareStatus('Copied embed code')
-                  setTimeout(() => setShareStatus(''), 2000)
-                  setIsEmbedModalOpen(false)
-                }}
-                style={{ padding: '8px 16px', border: 'none', borderRadius: 6, background: '#18181b', color: '#fff', cursor: 'pointer' }}
-              >Copy Code</button>
+            <input
+              type="text"
+              value={form.description ?? ''}
+              onChange={e => updateFormDescription(e.target.value)}
+              placeholder="Add a description (optional)..."
+              className="w-full text-center text-2xl font-medium text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300 transition-colors focus:placeholder:opacity-0"
+            />
+          </div>
+
+          <div className="space-y-6">
+            {questions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-32 px-10 border-4 border-dashed border-slate-300 rounded-3xl bg-white text-center shadow-sm">
+                <div className="size-24 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-8">
+                  <ClipboardList size={48} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 mb-4">Build your form</h3>
+                <p className="text-xl text-slate-500 max-w-lg mb-12 font-medium">
+                  Start from scratch by adding your first question, or let our AI generate a complete form based on your prompt.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-lg">
+                  <Button size="xl" className="w-full" onClick={addQuestion} leftIcon={<Plus size={24} strokeWidth={3} />}>
+                    Add First Question
+                  </Button>
+                  <Button variant="outline" size="xl" className="w-full" onClick={() => setIsAiModalOpen(true)} leftIcon={<Sparkles size={24} strokeWidth={3} />}>
+                    Generate with AI
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              questions.map((q, i) => (
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  index={i}
+                  total={questions.length}
+                  onChange={uq => updateQuestion(i, uq)}
+                  onDelete={() => deleteQuestion(i)}
+                  onMoveUp={() => moveQuestion(i, 'up')}
+                  onMoveDown={() => moveQuestion(i, 'down')}
+                  allQuestions={questions}
+                  logicGraph={logicGraph}
+                  onConditionChange={updateCondition}
+                  t={t}
+                />
+              ))
+            )}
+          </div>
+
+          {questions.length > 0 && (
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 border-t-2 border-slate-200 pt-12 pb-24">
+              <Button variant="secondary" size="xl" onClick={addQuestion} className="w-full sm:w-auto" leftIcon={<Plus size={24} strokeWidth={3} />}>
+                Add Question
+              </Button>
+              <Button size="xl" className="w-full sm:w-auto" onClick={() => setIsAiModalOpen(true)} leftIcon={<Sparkles size={24} strokeWidth={3} />}>
+                Generate More with AI
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Modals */}
+      {isAiModalOpen && (
+        <AiGenerateModal
+          open={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onQuestionsGenerated={handleAIGenerated}
+        />
+      )}
+
+      <Modal 
+        isOpen={isPublishModalOpen} 
+        onClose={() => setIsPublishModalOpen(false)}
+        title="🎉 Form Published!"
+        maxWidth="lg"
+        footer={
+          <Button size="lg" className="w-full" onClick={() => setIsPublishModalOpen(false)}>Done</Button>
+        }
+      >
+        <div className="flex flex-col items-center justify-center py-10 text-center space-y-6">
+          <div className="flex size-24 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-600">
+            <Check size={48} strokeWidth={3} />
+          </div>
+          <p className="text-xl font-bold text-slate-600">Your form is now live and ready to collect responses. Share the links below to get started.</p>
+          
+          <div className="w-full space-y-6 text-left mt-10">
+            <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200">
+              <label className="text-lg font-bold text-slate-900 flex items-center gap-3 mb-4">
+                <Eye size={20} strokeWidth={3} /> Standard Form Link
+              </label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <Input 
+                  readOnly 
+                  value={`${window.location.origin}/f/${formId}`} 
+                  className="bg-white"
+                />
+                <Button size="lg" onClick={shareForm} leftIcon={<Copy size={20} strokeWidth={3} />}>
+                  {shareStatus === 'Copied link' ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-indigo-50 p-6 rounded-2xl border-2 border-indigo-200">
+              <label className="text-lg font-bold text-indigo-900 flex items-center gap-3 mb-4">
+                <MessageSquare size={20} strokeWidth={3} /> AI Chatbot Link
+              </label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <Input 
+                  readOnly 
+                  value={`${window.location.origin}/chat/${formId}`} 
+                  className="bg-white border-2 border-indigo-200 focus:ring-indigo-500"
+                />
+                <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={shareChatForm} leftIcon={<Bot size={20} strokeWidth={3} />}>
+                  {shareStatus === 'Copied chat link' ? 'Copied' : 'Copy Chat'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </Modal>
+
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        title="⚙️ Form Settings"
+      >
+        <div className="space-y-10 py-6">
+          {/* Access Control */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Access Control</h3>
+              <p className="text-base font-medium text-slate-500 mt-2">Manage who can submit responses to this form.</p>
+            </div>
+            
+            <label className="flex items-start gap-4 p-6 border-2 border-slate-200 rounded-2xl bg-slate-50 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-colors">
+              <div className="relative flex items-center mt-1">
+                <input
+                  type="checkbox"
+                  checked={form.schema.settings?.requireEmail || false}
+                  onChange={toggleRequireEmail}
+                  className="peer sr-only"
+                />
+                <div className="h-8 w-14 rounded-full bg-slate-200 transition-colors peer-checked:bg-black"></div>
+                <div className="absolute left-[4px] top-[4px] h-6 w-6 rounded-full bg-white transition-transform peer-checked:translate-x-6"></div>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-slate-900">Limit to 1 response per person</p>
+                <p className="text-base font-medium text-slate-500 mt-1">Requires users to verify their email address before submitting.</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Embed */}
+          {form.is_published && (
+            <div className="space-y-6 pt-10 border-t-2 border-slate-100">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Embed Form</h3>
+                <p className="text-base font-medium text-slate-500 mt-2">Copy the code below to embed this form on your website.</p>
+              </div>
+              <textarea 
+                readOnly 
+                value={`<iframe src="${window.location.origin}/f/${formId}" width="100%" height="600" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>`}
+                className="w-full h-32 rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 text-sm font-mono font-bold text-slate-600 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 resize-none"
+                onClick={e => (e.target as HTMLTextAreaElement).select()}
+              />
+            </div>
+          )}
+
+          {/* Danger Zone */}
+          {form.is_published && (
+            <div className="space-y-6 pt-10 border-t-2 border-red-100">
+              <div>
+                <h3 className="text-xl font-bold text-red-600">Danger Zone</h3>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 border-2 border-red-200 rounded-2xl bg-red-50">
+                <div className="w-full sm:w-auto">
+                  <p className="text-lg font-bold text-slate-900">Unpublish Form</p>
+                  <p className="text-base font-medium text-slate-600 mt-1">Form will no longer accept responses.</p>
+                </div>
+                <Button size="lg" variant="danger" className="w-full sm:w-auto" onClick={togglePublish} isLoading={publishing}>
+                  Unpublish
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
     </div>
   )
 }

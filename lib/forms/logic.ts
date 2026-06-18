@@ -11,9 +11,15 @@ export function normalizeFormSchema(value: unknown): FormSchema {
   if (!value || typeof value !== 'object') return { questions: [] }
 
   const questions = (value as { questions?: unknown }).questions
+  const settings = (value as { settings?: unknown }).settings
+  
   if (!Array.isArray(questions)) return { questions: [] }
 
-  return { questions: questions.filter(isQuestion) }
+  const result: FormSchema = { questions: questions.filter(isQuestion) }
+  if (settings && typeof settings === 'object') {
+    result.settings = settings as FormSchema['settings']
+  }
+  return result
 }
 
 export function normalizeLogicGraph(value: unknown, schema: FormSchema): LogicGraph {

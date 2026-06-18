@@ -10,7 +10,10 @@ import {
 } from '@/lib/forms/responses'
 import { getServerTranslations } from '@/lib/i18n/server'
 import LanguageToggle from '@/app/components/LanguageToggle'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Download, FileSpreadsheet, BarChart3, Inbox } from 'lucide-react'
+import { Button } from '@/app/components/ui/Button'
+import { Card, CardContent } from '@/app/components/ui/Card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/Table'
 
 interface Props {
   params: Promise<{ workspaceId: string; formId: string }>
@@ -64,113 +67,105 @@ export default async function ResponsesPage({ params }: Props) {
   const responseList = (responses ?? []) as ResponseRecord[]
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9] text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex-1 overflow-y-auto bg-slate-50 font-sans">
+      <header className="sticky top-0 z-20 flex h-24 items-center justify-between border-b-2 border-slate-200 bg-white/90 px-8 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+          <Link
+            href={`/dashboard/${workspaceId}/forms/${formId}`}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-black transition-colors shadow-sm"
+          >
+            <ArrowLeft size={24} strokeWidth={3} />
+          </Link>
+          <div className="h-8 w-1 bg-slate-200 rounded-full"></div>
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Link
-                href={`/dashboard/${workspaceId}/forms/${formId}`}
-                className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 text-sm font-medium transition-colors"
-              >
-                <ArrowLeft size={16} />
-                {t.common.backToEditor}
-              </Link>
-              <div className="lg:hidden"><LanguageToggle /></div>
-            </div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
-                {t.responses.title}
-              </h1>
-              <div className="hidden lg:block"><LanguageToggle /></div>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">
-              {formRecord.title} · {responseList.length} {t.analytics.responseCount}
-            </p>
+            <h1 className="text-2xl font-black text-slate-900 truncate max-w-sm">
+              {formRecord.title}
+            </h1>
+            <p className="text-lg font-bold text-slate-500">{responseList.length} {t.analytics.responseCount}</p>
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={`/f/${formId}`}
-              target="_blank"
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-            >
+        <div className="flex items-center gap-4">
+          <LanguageToggle />
+          <Link href={`/f/${formId}`} target="_blank">
+            <Button variant="outline" size="lg" leftIcon={<ExternalLink size={20} strokeWidth={3} />}>
               {t.responses.publicForm}
-            </Link>
-            <Link
-              href={`/dashboard/${workspaceId}/forms/${formId}/analytics`}
-              className="inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
-            >
+            </Button>
+          </Link>
+          <Link href={`/dashboard/${workspaceId}/forms/${formId}/analytics`}>
+            <Button variant="secondary" size="lg" leftIcon={<BarChart3 size={20} strokeWidth={3} />}>
               {t.common.analytics}
-            </Link>
-            <a
-              href={`/dashboard/${workspaceId}/forms/${formId}/responses/export?format=csv`}
-              className="inline-flex items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              {t.responses.exportCsv}
-            </a>
-            <a
-              href={`/dashboard/${workspaceId}/forms/${formId}/responses/export?format=xlsx`}
-              className="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-            >
-              {t.responses.exportXlsx}
-            </a>
-          </div>
+            </Button>
+          </Link>
+          <a href={`/dashboard/${workspaceId}/forms/${formId}/responses/export?format=csv`}>
+            <Button size="lg" leftIcon={<Download size={20} strokeWidth={3} />}>
+              CSV
+            </Button>
+          </a>
+          <a href={`/dashboard/${workspaceId}/forms/${formId}/responses/export?format=xlsx`}>
+            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700" leftIcon={<FileSpreadsheet size={20} strokeWidth={3} />}>
+              Excel
+            </Button>
+          </a>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
+      <main className="mx-auto max-w-7xl p-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-black text-slate-900">{t.responses.title}</h2>
+          <p className="text-xl text-slate-500 mt-2 font-medium">View and export all submissions for this form.</p>
+        </div>
+
         {responseList.length === 0 ? (
-          <section className="rounded-lg border border-slate-200 bg-white px-5 py-16 text-center">
-            <h2 className="text-base font-semibold">{t.responses.noResponsesYet}</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-              {t.responses.noResponsesDesc}
-            </p>
-          </section>
-        ) : (
-          <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="whitespace-nowrap border-b border-slate-200 px-4 py-3 font-semibold">
-                      {t.responses.submitted}
-                    </th>
-                    {schema.questions.map((question, index) => (
-                      <th
-                        key={question.id}
-                        className="min-w-56 border-b border-slate-200 px-4 py-3 font-semibold"
-                      >
-                        {question.label || `${t.dashboard.questions} ${index + 1}`}
-                      </th>
-                    ))}
-                    <th className="min-w-72 border-b border-slate-200 px-4 py-3 font-semibold">
-                      {t.responses.userAgent}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {responseList.map((response) => (
-                    <tr key={response.id} className="align-top">
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                        {formatResponseDate(response.submitted_at)}
-                      </td>
-                      {schema.questions.map((question) => (
-                        <td key={question.id} className="px-4 py-3 text-slate-800">
-                          {formatAnswer(question, response.answers) || (
-                            <span className="text-slate-400">{t.responses.empty}</span>
-                          )}
-                        </td>
-                      ))}
-                      <td className="max-w-md px-4 py-3 text-xs text-slate-500">
-                        <span className="line-clamp-2">{getUserAgent(response) || t.responses.unknown}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <Card className="flex flex-col items-center justify-center p-20 text-center border-4 border-dashed border-slate-300 bg-white shadow-sm">
+            <div className="size-20 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400 mb-6">
+              <Inbox size={40} strokeWidth={2.5} />
             </div>
-          </section>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">{t.responses.noResponsesYet}</h3>
+            <p className="text-lg text-slate-500 max-w-md font-medium">{t.responses.noResponsesDesc}</p>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-48 whitespace-nowrap bg-slate-50 border-r-2 border-slate-200">
+                    {t.responses.submitted}
+                  </TableHead>
+                  {schema.questions.map((question, index) => (
+                    <TableHead
+                      key={question.id}
+                      className="min-w-64 bg-slate-50 border-r-2 border-slate-200"
+                    >
+                      {question.label || `${t.dashboard.questions} ${index + 1}`}
+                    </TableHead>
+                  ))}
+                  <TableHead className="min-w-72 bg-slate-50">
+                    {t.responses.userAgent}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {responseList.map((response) => (
+                  <TableRow key={response.id} className="align-top">
+                    <TableCell className="whitespace-nowrap font-bold text-slate-900 border-r-2 border-slate-100 bg-slate-50/30">
+                      {formatResponseDate(response.submitted_at)}
+                    </TableCell>
+                    {schema.questions.map((question) => (
+                      <TableCell key={question.id} className="text-lg text-slate-800 border-r-2 border-slate-100">
+                        {formatAnswer(question, response.answers) || (
+                          <span className="text-slate-400 font-medium italic">{t.responses.empty}</span>
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell className="max-w-md text-sm text-slate-500 font-medium">
+                      <span className="line-clamp-2">{getUserAgent(response) || t.responses.unknown}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </main>
     </div>
