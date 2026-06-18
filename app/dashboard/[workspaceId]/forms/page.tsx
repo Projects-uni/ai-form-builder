@@ -49,7 +49,7 @@ function getGradientClass(id: string) {
 export default async function WorkspaceFormsPage({ params }: Props) {
   const { workspaceId } = await params
   const supabase = await createClient()
-  // const { t } = await getServerTranslations()
+  const { t } = await getServerTranslations()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -93,15 +93,15 @@ export default async function WorkspaceFormsPage({ params }: Props) {
           </Link>
           <div className="h-8 w-1 bg-slate-200 rounded-full"></div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900">All Forms</h1>
-            <p className="text-lg font-bold text-slate-500">Manage your workspace forms</p>
+            <h1 className="text-2xl font-black text-slate-900">{t.dashboard.allForms}</h1>
+            <p className="text-lg font-bold text-slate-500">{t.dashboard.manageWorkspaceForms}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <LanguageToggle />
           <Link href={`/dashboard/${workspaceId}/forms/new`}>
             <Button size="lg" leftIcon={<Plus size={20} strokeWidth={3} />}>
-              Create New Form
+              {t.home.createNewForm}
             </Button>
           </Link>
         </div>
@@ -114,13 +114,13 @@ export default async function WorkspaceFormsPage({ params }: Props) {
             <div className="flex size-24 items-center justify-center rounded-3xl bg-slate-100 mb-8 shadow-sm">
               <ClipboardList className="h-12 w-12 text-slate-400" strokeWidth={2.5} />
             </div>
-            <h2 className="text-3xl font-black text-slate-900 mb-4">No forms created yet</h2>
+            <h2 className="text-3xl font-black text-slate-900 mb-4">{t.dashboard.noFormsCreated}</h2>
             <p className="text-xl text-slate-500 max-w-lg mb-10 font-medium">
-              Start collecting insights by creating your first AI-generated form.
+              {t.dashboard.startCollecting}
             </p>
             <Link href={`/dashboard/${workspaceId}/forms/new`}>
               <Button size="xl" className="shadow-xl shadow-indigo-200" leftIcon={<Plus size={24} strokeWidth={3} />}>
-                Create Your First Form
+                {t.dashboard.createFirstForm}
               </Button>
             </Link>
           </div>
@@ -146,7 +146,7 @@ export default async function WorkspaceFormsPage({ params }: Props) {
                   <div className="flex flex-col flex-1 p-6">
                     <div className="flex justify-between items-start mb-4">
                       <Badge variant={form.is_published ? 'success' : 'secondary'} className="font-bold py-1 px-3">
-                        {form.is_published ? 'Published' : 'Draft'}
+                        {form.is_published ? t.common.published : t.common.draft}
                       </Badge>
                       <span className="text-sm font-bold text-slate-400">{formatDate(form.created_at)}</span>
                     </div>
@@ -156,16 +156,16 @@ export default async function WorkspaceFormsPage({ params }: Props) {
                     </h3>
                     
                     <p className="text-sm font-medium text-slate-500 line-clamp-2 mb-6 min-h-[40px]">
-                      {form.description || "No description provided."}
+                      {form.description || t.home.noDescription}
                     </p>
 
                     <div className="mt-auto grid grid-cols-2 gap-4 border-y-2 border-slate-100 py-4 mb-4">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Questions</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{t.dashboard.questions}</p>
                         <p className="text-lg font-black text-slate-900">{qCount}</p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Responses</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{t.common.responses}</p>
                         <p className="text-lg font-black text-slate-900">{rCount}</p>
                       </div>
                     </div>
@@ -173,14 +173,14 @@ export default async function WorkspaceFormsPage({ params }: Props) {
                     <div className="flex items-center gap-2">
                       <Link href={`/dashboard/${workspaceId}/forms/${form.id}`} className="flex-1">
                         <Button variant="secondary" className="w-full justify-center">
-                          Edit
+                          {t.dashboard.edit}
                         </Button>
                       </Link>
                       {rCount > 0 && (
                         <Link href={`/dashboard/${workspaceId}/forms/${form.id}/analytics`} className="flex-1">
                           <Button variant="outline" className="w-full justify-center gap-2">
                             <BarChart3 size={18} strokeWidth={2.5} />
-                            Data
+                            {t.dashboard.data}
                           </Button>
                         </Link>
                       )}

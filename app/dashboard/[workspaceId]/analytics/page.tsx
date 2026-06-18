@@ -80,17 +80,17 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
     .slice(0, 10) // top 10 forms
 
   // Helper text for overall sentiment
-  let overallVibe = "Not enough data"
+  let overallVibe = t.analytics.noDataYet
   let vibeColor = "text-slate-500"
   if (totalAnalyzed > 0) {
     if (positive > negative && positive > neutral) {
-      overallVibe = "Mostly Positive"
+      overallVibe = t.analytics.mostlyPositive
       vibeColor = "text-emerald-500"
     } else if (negative > positive && negative > neutral) {
-      overallVibe = "Mostly Negative"
+      overallVibe = t.analytics.mostlyNegative
       vibeColor = "text-rose-500"
     } else {
-      overallVibe = "Mixed / Neutral"
+      overallVibe = t.analytics.mixedNeutral
       vibeColor = "text-slate-500"
     }
   }
@@ -107,8 +107,8 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
           </Link>
           <div className="h-8 w-1 bg-slate-200 rounded-full"></div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900">Workspace Analytics</h1>
-            <p className="text-lg font-bold text-slate-500">Global insights across all forms</p>
+            <h1 className="text-2xl font-black text-slate-900">{t.analytics.workspaceAnalytics}</h1>
+            <p className="text-lg font-bold text-slate-500">{t.analytics.globalInsights}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -122,7 +122,7 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
         <section className="grid gap-8 md:grid-cols-4">
           <Card className="border-2 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">Total Responses</CardTitle>
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">{t.analytics.totalResponses}</CardTitle>
               <FileText className="h-6 w-6 text-indigo-400" />
             </CardHeader>
             <CardContent>
@@ -132,7 +132,7 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
           
           <Card className="border-2 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">Forms Tracked</CardTitle>
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">{t.analytics.formsTracked}</CardTitle>
               <BarChart3 className="h-6 w-6 text-indigo-400" />
             </CardHeader>
             <CardContent>
@@ -142,7 +142,7 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
 
           <Card className="border-2 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-indigo-400">AI Analyzed</CardTitle>
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-indigo-400">{t.analytics.aiAnalyzedAnswers}</CardTitle>
               <BrainCircuit className="h-6 w-6 text-indigo-500" strokeWidth={2.5} />
             </CardHeader>
             <CardContent>
@@ -152,7 +152,7 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
 
           <Card className="border-2 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">Overall Vibe</CardTitle>
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-400">{t.analytics.overallVibe}</CardTitle>
               <Sparkles className="h-6 w-6 text-amber-400" />
             </CardHeader>
             <CardContent>
@@ -166,9 +166,9 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
             <div className="flex size-20 items-center justify-center rounded-3xl bg-slate-100 mb-6 shadow-sm">
               <AlertCircle className="h-10 w-10 text-slate-400" strokeWidth={2.5} />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-3">No data available yet</h2>
+            <h2 className="text-2xl font-black text-slate-900 mb-3">{t.analytics.noDataYet}</h2>
             <p className="text-lg text-slate-500 max-w-md font-medium">
-              Publish some forms and collect responses to see global analytics and AI insights here.
+              {t.analytics.publishSomeForms}
             </p>
           </div>
         ) : (
@@ -178,10 +178,10 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
               <CardHeader className="border-b-2 border-slate-50 bg-white pb-6">
                 <CardTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
                   <Sparkles className="text-indigo-500" size={24} />
-                  Global Sentiment
+                  {t.analytics.overallSentiment}
                 </CardTitle>
                 <CardDescription className="text-base font-medium mt-2 text-slate-500">
-                  Aggregated AI sentiment analysis across all free-text responses in this workspace.
+                  {t.analytics.sentimentBreakdown}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex items-center justify-center py-10">
@@ -194,10 +194,10 @@ export default async function WorkspaceAnalyticsPage({ params }: Props) {
               <CardHeader className="border-b-2 border-slate-50 bg-white pb-6">
                 <CardTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
                   <BarChart3 className="text-indigo-500" size={24} />
-                  Top Forms by Responses
+                  {t.analytics.topFormsByResponses}
                 </CardTitle>
                 <CardDescription className="text-base font-medium mt-2 text-slate-500">
-                  The most active forms in your workspace based on total response volume.
+                  {t.analytics.mostActiveForms}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 py-10 px-4">

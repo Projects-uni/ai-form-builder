@@ -12,7 +12,8 @@ import {
   LogOut,
   Sparkles,
   Users,
-  Webhook
+  Webhook,
+  Activity
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -28,20 +29,20 @@ export function Sidebar({ workspaceId, workspaceName, userEmail, userRole, t }: 
 
   const navGroups = [
     {
-      title: 'Platform',
+      title: t.sidebar?.platform || 'Platform',
       items: [
-        { label: 'Dashboard', icon: LayoutDashboard, href: `/dashboard/${workspaceId}`, exact: true },
-        { label: 'Forms', icon: ClipboardList, href: `/dashboard/${workspaceId}/forms`, exact: false },
-        { label: 'Analytics', icon: BarChart3, href: `/dashboard/${workspaceId}/analytics`, exact: false },
+        { label: t.sidebar?.dashboard || 'Dashboard', icon: LayoutDashboard, href: `/dashboard/${workspaceId}`, exact: true },
+        { label: t.sidebar?.forms || 'Forms', icon: ClipboardList, href: `/dashboard/${workspaceId}/forms`, exact: false },
+        { label: t.sidebar?.analytics || 'Analytics', icon: BarChart3, href: `/dashboard/${workspaceId}/analytics`, exact: false },
       ]
     },
     {
-      title: 'Workspace',
+      title: t.sidebar?.workspace || 'Workspace',
       items: [
-        { label: 'Team', icon: Users, href: `/dashboard/${workspaceId}/team`, exact: false },
-        { label: 'Integrations', icon: Webhook, href: `/dashboard/${workspaceId}/integrations`, exact: false },
-        { label: 'Billing', icon: CreditCard, href: `/dashboard/${workspaceId}/billing`, exact: false },
-        { label: 'Settings', icon: Settings, href: `/dashboard/${workspaceId}/settings`, exact: false },
+        { label: t.sidebar?.team || 'Team', icon: Users, href: `/dashboard/${workspaceId}/team`, exact: false },
+        { label: t.sidebar?.integrations || 'Integrations', icon: Webhook, href: `/dashboard/${workspaceId}/integrations`, exact: false },
+        { label: t.sidebar?.activityLog || 'Activity Log', icon: Activity, href: `/dashboard/${workspaceId}/activity`, exact: false },
+        { label: t.sidebar?.settings || 'Settings', icon: Settings, href: `/dashboard/${workspaceId}/settings`, exact: false },
       ]
     }
   ]
@@ -106,7 +107,7 @@ export function Sidebar({ workspaceId, workspaceName, userEmail, userRole, t }: 
             <p className="truncate text-base font-bold text-slate-900">{userEmail}</p>
             <Link href="/auth/logout" className="text-sm font-semibold text-slate-500 hover:text-black transition-colors flex items-center gap-2 mt-2">
               <LogOut size={16} strokeWidth={3} />
-              Sign out
+              {t.sidebar?.signOut || 'Sign out'}
             </Link>
           </div>
         </div>

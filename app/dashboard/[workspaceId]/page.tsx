@@ -61,66 +61,66 @@ export default async function WorkspacePage({ params }: Props) {
   const formList = (forms ?? []) as FormRecord[]
   const publishedCount = formList.filter((form) => form.is_published).length
   const totalQuestions = formList.reduce((sum, form) => sum + questionCount(form), 0)
-  
+
   const conversionRate = responseCount ? Math.min(Math.round((responseCount / (responseCount + 120)) * 100), 100) : 0
 
   return (
     <main className="flex-1 overflow-y-auto bg-slate-50">
       <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b-2 border-slate-200 bg-white px-8">
         <div className="flex items-center gap-6">
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t.dashboard.title}</h1>
         </div>
         <div className="flex items-center gap-6">
           <LanguageToggle />
           <Link href={`/dashboard/${workspaceId}/forms/new`}>
             <Button size="md" leftIcon={<Plus size={20} strokeWidth={3} />}>
-              Create Form
+              {t.dashboard.createForm}
             </Button>
           </Link>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl p-8 space-y-12">
-        
+
         {/* KPI Section */}
         <section className="grid gap-8 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-500">Total Responses</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-500">{t.dashboard.totalResponses}</CardTitle>
               <FileText className="h-6 w-6 text-slate-400" />
             </CardHeader>
             <CardContent>
               <div className="text-5xl font-black text-slate-900">{responseCount ?? 0}</div>
               <p className="text-sm font-bold text-slate-500 mt-4 flex items-center gap-2">
                 <ArrowUpRight className="h-5 w-5 text-emerald-500" strokeWidth={3} />
-                <span className="text-emerald-500">+12%</span> from last month
+                <span className="text-emerald-500">+12%</span> {t.dashboard.fromLastMonth}
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-500">Active Forms</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-500">{t.dashboard.activeForms}</CardTitle>
               <ClipboardList className="h-6 w-6 text-slate-400" />
             </CardHeader>
             <CardContent>
               <div className="text-5xl font-black text-slate-900">{publishedCount}</div>
               <p className="text-sm font-bold text-slate-500 mt-4">
-                Out of {formList.length} total forms
+                {t.dashboard.outOfTotal.replace('{count}', formList.length.toString())}
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-500">Avg. Conversion Rate</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-500">{t.dashboard.conversionRate}</CardTitle>
               <LayoutDashboard className="h-6 w-6 text-slate-400" />
             </CardHeader>
             <CardContent>
               <div className="text-5xl font-black text-slate-900">{conversionRate}%</div>
               <p className="text-sm font-bold text-slate-500 mt-4 flex items-center gap-2">
                 <ArrowUpRight className="h-5 w-5 text-emerald-500" strokeWidth={3} />
-                <span className="text-emerald-500">+2.4%</span> from last month
+                <span className="text-emerald-500">+2.4%</span> {t.dashboard.fromLastMonth}
               </p>
             </CardContent>
           </Card>
@@ -128,21 +128,24 @@ export default async function WorkspacePage({ params }: Props) {
 
         {/* Quick Action / AI section */}
         <section>
-          <Card className="bg-black text-white overflow-hidden relative border-none">
-            <div className="absolute top-0 right-0 -mt-16 -mr-16 size-64 bg-indigo-500 rounded-full blur-[100px] opacity-40"></div>
-            <CardContent className="p-12 relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <Sparkles className="h-8 w-8 text-indigo-400" strokeWidth={2.5} />
-                  <h2 className="text-3xl font-bold tracking-tight">Generate Forms with AI</h2>
+          <Card className="relative overflow-hidden border-2 border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+            <div className="absolute -right-20 -top-20 size-64 rounded-full bg-indigo-50 opacity-50 blur-3xl"></div>
+            
+            <CardContent className="relative z-10 flex flex-col items-center justify-between gap-6 p-8 md:flex-row md:gap-8 md:p-10">
+              <div className="flex-1">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100">
+                    <Sparkles className="h-5 w-5 text-indigo-500" strokeWidth={2.5} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900">{t.dashboard.generateAI}</h2>
                 </div>
-                <p className="text-lg text-slate-300 max-w-2xl leading-relaxed">
-                  Describe what you need and our AI will generate a complete, ready-to-publish form with questions, logic, and a professional design in seconds.
+                <p className="max-w-2xl text-base font-medium text-slate-500 leading-relaxed">
+                  {t.dashboard.generateAIDesc}
                 </p>
               </div>
-              <Link href={`/dashboard/${workspaceId}/forms/new`} className="shrink-0">
-                <Button className="bg-white text-black hover:bg-slate-100 shadow-xl" size="xl">
-                  Try AI Builder
+              <Link href={`/dashboard/${workspaceId}/forms/new`} className="shrink-0 w-full md:w-auto">
+                <Button className="w-full bg-black text-white hover:bg-slate-800 hover:shadow-lg transition-all" size="lg">
+                  {t.dashboard.tryAIBuilder}
                 </Button>
               </Link>
             </CardContent>
@@ -153,11 +156,11 @@ export default async function WorkspacePage({ params }: Props) {
         <section>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Recent Forms</h2>
-              <p className="text-base text-slate-500 mt-1">Manage and view your recently created forms.</p>
+              <h2 className="text-2xl font-bold text-slate-900">{t.home.recentForms}</h2>
+              <p className="text-base text-slate-500 mt-1">{t.dashboard.recentFormsDesc}</p>
             </div>
             <Link href={`/dashboard/${workspaceId}/forms`}>
-              <Button variant="outline" size="md">View All</Button>
+              <Button variant="outline" size="md">{t.dashboard.viewAll}</Button>
             </Link>
           </div>
 
@@ -167,23 +170,23 @@ export default async function WorkspacePage({ params }: Props) {
                 <div className="flex size-20 items-center justify-center rounded-2xl bg-slate-100 mb-6">
                   <ClipboardList className="h-10 w-10 text-slate-400" strokeWidth={2.5} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">No forms created</h3>
+                <h3 className="text-2xl font-bold text-slate-900">{t.dashboard.noFormsCreated}</h3>
                 <p className="text-lg text-slate-500 mt-2 max-w-md mb-8">
-                  Get started by creating your first form to start collecting responses and insights.
+                  {t.dashboard.startCollecting}
                 </p>
                 <Link href={`/dashboard/${workspaceId}/forms/new`}>
-                  <Button size="lg" leftIcon={<Plus size={20} strokeWidth={3} />}>Create Form</Button>
+                  <Button size="lg" leftIcon={<Plus size={20} strokeWidth={3} />}>{t.dashboard.createForm}</Button>
                 </Link>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Questions</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t.dashboard.name}</TableHead>
+                    <TableHead>{t.dashboard.status}</TableHead>
+                    <TableHead>{t.dashboard.questions}</TableHead>
+                    <TableHead>{t.dashboard.createdAt}</TableHead>
+                    <TableHead className="text-right">{t.dashboard.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -201,7 +204,7 @@ export default async function WorkspacePage({ params }: Props) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={form.is_published ? 'success' : 'secondary'}>
-                          {form.is_published ? 'Published' : 'Draft'}
+                          {form.is_published ? t.common.published : t.common.draft}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-600 font-bold text-lg">
@@ -213,13 +216,13 @@ export default async function WorkspacePage({ params }: Props) {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-3">
                           <Link href={`/dashboard/${workspaceId}/forms/${form.id}/responses`}>
-                            <Button variant="ghost" size="md">Responses</Button>
+                            <Button variant="ghost" size="md">{t.common.responses}</Button>
                           </Link>
                           <Link href={`/dashboard/${workspaceId}/forms/${form.id}/analytics`}>
-                            <Button variant="ghost" size="md">Analytics</Button>
+                            <Button variant="ghost" size="md">{t.common.analytics}</Button>
                           </Link>
                           <Link href={`/dashboard/${workspaceId}/forms/${form.id}`}>
-                            <Button variant="secondary" size="md">Edit Form</Button>
+                            <Button variant="secondary" size="md">{t.dashboard.editForm}</Button>
                           </Link>
                         </div>
                       </TableCell>

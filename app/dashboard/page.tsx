@@ -12,9 +12,14 @@ export default async function DashboardPage() {
 
   // If user already has a workspace, go straight to it
   if (workspaces && workspaces.length > 0) {
-    const workspace = workspaces[0].workspace as { id: string } | { id: string }[]
-    const first = Array.isArray(workspace) ? workspace[0] : workspace
-    redirect(`/dashboard/${first.id}`)
+    const validWorkspace = workspaces.find((w: any) => w.workspace !== null)
+    if (validWorkspace) {
+      const workspace = validWorkspace.workspace as { id: string } | { id: string }[]
+      const first = Array.isArray(workspace) ? workspace[0] : workspace
+      if (first && first.id) {
+        redirect(`/dashboard/${first.id}`)
+      }
+    }
   }
 
   // No workspace yet — show create form
