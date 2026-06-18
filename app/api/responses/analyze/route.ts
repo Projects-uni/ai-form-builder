@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import Groq from 'groq-sdk'
 import OpenAI from 'openai'
+import { triggerWebhooks } from '@/lib/webhooks/trigger'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     // 1. Fetch the response and form schema
     const { data: response, error: responseErr } = await supabaseAdmin
       .from('responses')
-      .select('answers')
+      .select('answers, respondent_meta, submitted_at, form_id')
       .eq('id', responseId)
       .single()
 
@@ -27,13 +28,23 @@ export async function POST(request: Request) {
 
     const { data: form, error: formErr } = await supabaseAdmin
       .from('forms')
-      .select('schema')
+      .select('schema, workspace_id')
       .eq('id', formId)
       .single()
 
     if (formErr || !form) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 })
     }
+
+    // Fire webhooks asynchronously
+    triggerWebhooks(form.workspace_id, {
+      event_type: 'new_response',
+      form_id: formId,
+      workspace_id: form.workspace_id,
+      submitted_at: response.submitted_at,
+      respondent_meta: response.respondent_meta,
+      answers: response.answers,
+    }).catch(err => console.error('Webhook trigger error:', err))
 
     // 2. Identify text questions (short_text, long_text)
     const textQuestionIds = new Set<string>()

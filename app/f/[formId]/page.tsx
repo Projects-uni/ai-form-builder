@@ -33,6 +33,7 @@ export default function PublicFormPage({ params }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const supabase = useMemo(() => createClient(), [])
   const { t } = useTranslation()
 
@@ -67,6 +68,28 @@ export default function PublicFormPage({ params }: Props) {
   function setAnswer(questionId: string, value: string) {
     setAnswers(prev => ({ ...prev, [questionId]: value }))
     setErrors(prev => ({ ...prev, [questionId]: '' }))
+  }
+
+  async function handleFileUpload(qId: string, file: File) {
+    if (!formId) return
+    setUploading(prev => ({ ...prev, [qId]: true }))
+    
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${formId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    
+    const { data, error } = await supabase.storage
+      .from('ai-formbuilder-bucket')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false })
+      
+    if (error) {
+      alert('Upload failed: ' + error.message)
+      setUploading(prev => ({ ...prev, [qId]: false }))
+      return
+    }
+    
+    const { data: { publicUrl } } = supabase.storage.from('ai-formbuilder-bucket').getPublicUrl(fileName)
+    setAnswer(qId, publicUrl)
+    setUploading(prev => ({ ...prev, [qId]: false }))
   }
 
   function validate(): boolean {
@@ -253,9 +276,28 @@ export default function PublicFormPage({ params }: Props) {
               border: '1px dashed #e0e0e0', borderRadius: 8,
               padding: '20px', textAlign: 'center',
             }}>
-              <p style={{ fontSize: 13, color: '#999' }}>
-                {t.publicForm.fileComingSoon}
-              </p>
+              {uploading[q.id] ? (
+                <p style={{ fontSize: 13, color: '#666' }}>Uploading...</p>
+              ) : answers[q.id] ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 14, color: '#10b981' }}>✓ File uploaded</span>
+                  <button 
+                    onClick={() => setAnswer(q.id, '')}
+                    style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, textDecoration: 'underline' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <input 
+                  type="file" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleFileUpload(q.id, file)
+                  }}
+                  style={{ fontSize: 14, maxWidth: '100%' }}
+                />
+              )}
             </div>
           )}
 
@@ -270,7 +312,7 @@ export default function PublicFormPage({ params }: Props) {
       {questions.length > 0 && (
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || Object.values(uploading).some(v => v)}
           style={{
             padding: '12px 32px', fontSize: 15, fontWeight: 500,
             background: '#18181b', color: '#fff',

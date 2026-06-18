@@ -125,14 +125,14 @@ Still to build in Phase 3:
 - Embed code generation
 - Focused tests for schema parsing, DAG traversal, cycle detection, and visible-answer submission
 
-PHASE 4 — AI Module (NOT STARTED)
+PHASE 4 — AI Module (COMPLETE)
 
 - Groq SSE endpoint at /api/ai/generate — receives form purpose, target audience, question count, question types. Sends RAG-style prompt to Groq llama-3.3-70b-versatile. Streams questions back using Server-Sent Events. Questions appear in the form editor in real time.
 - Wire up the "Generate with AI" button in the new form page to call this endpoint
 - OpenAI embedding pipeline — after a response is submitted, extract free-text answers, send to OpenAI text-embedding-3-small, store the 1536-dim vector in the embeddings table. This runs asynchronously so it does not slow down form submission.
 - Groq sentiment scoring — after embedding is stored, send the text to Groq and classify it as positive, negative, or neutral. Update the sentiment_label and sentiment_score fields in the embeddings table.
 
-PHASE 5 — Analytics Dashboard (NOT STARTED)
+PHASE 5 — Analytics Dashboard (COMPLETE)
 
 - Response metrics at /dashboard/[workspaceId]/forms/[formId]/analytics — total responses, completion rate, average time to complete, sentiment breakdown chart
 - Semantic clustering — query embeddings using pgvector cosine distance operator <=>, run k-means with k = square root of response count, display clusters of similar answers grouped together

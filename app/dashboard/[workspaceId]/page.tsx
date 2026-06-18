@@ -83,7 +83,7 @@ export default async function WorkspacePage({ params }: Props) {
   const navigationItems = [
     { label: t.dashboard.navigation.dashboard, icon: LayoutDashboard, href: '', active: true },
     { label: t.dashboard.navigation.forms, icon: ClipboardList, href: '#forms', active: false },
-    { label: t.dashboard.navigation.settings, icon: Settings, href: '#', active: false },
+    { label: t.dashboard.navigation.settings, icon: Settings, href: '/settings', active: false },
   ]
 
   return (

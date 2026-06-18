@@ -382,6 +382,7 @@ export default function FormEditorPage({ params }: Props) {
   const [error, setError] = useState('')
   const [shareStatus, setShareStatus] = useState('')
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  const [isEmbedModalOpen, setIsEmbedModalOpen] = useState(false)
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
@@ -594,16 +595,28 @@ export default function FormEditorPage({ params }: Props) {
           </a>
 
           {form.is_published && (
-            <button
-              onClick={shareForm}
-              style={{
-                padding: '7px 14px', fontSize: 13,
-                border: '1px solid #e0e0e0', borderRadius: 6,
-                background: '#fff', color: '#333', cursor: 'pointer',
-              }}
-            >
-              {shareStatus || t.common.share}
-            </button>
+            <>
+              <button
+                onClick={() => setIsEmbedModalOpen(true)}
+                style={{
+                  padding: '7px 14px', fontSize: 13,
+                  border: '1px solid #e0e0e0', borderRadius: 6,
+                  background: '#fff', color: '#333', cursor: 'pointer',
+                }}
+              >
+                Embed
+              </button>
+              <button
+                onClick={shareForm}
+                style={{
+                  padding: '7px 14px', fontSize: 13,
+                  border: '1px solid #e0e0e0', borderRadius: 6,
+                  background: '#fff', color: '#333', cursor: 'pointer',
+                }}
+              >
+                {shareStatus || t.common.share}
+              </button>
+            </>
           )}
 
           <button
@@ -696,6 +709,36 @@ export default function FormEditorPage({ params }: Props) {
         onClose={() => setIsAiModalOpen(false)}
         onQuestionsGenerated={handleAIGenerated}
       />
+
+      {isEmbedModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 12, width: 500, maxWidth: '90%' }}>
+            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Embed Form</h3>
+            <p style={{ fontSize: 14, color: '#666', marginBottom: 12 }}>Copy the code below to embed this form on your website.</p>
+            <textarea
+              readOnly
+              value={`<iframe src="${window.location.origin}/f/${formId}" width="100%" height="600px" frameborder="0" style="border:none;"></iframe>`}
+              style={{ width: '100%', height: 100, padding: 12, fontSize: 13, fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: 6, marginBottom: 16 }}
+              onClick={e => (e.target as HTMLTextAreaElement).select()}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button onClick={() => setIsEmbedModalOpen(false)} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Close</button>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`<iframe src="${window.location.origin}/f/${formId}" width="100%" height="600px" frameborder="0" style="border:none;"></iframe>`);
+                  setShareStatus('Copied embed code')
+                  setTimeout(() => setShareStatus(''), 2000)
+                  setIsEmbedModalOpen(false)
+                }}
+                style={{ padding: '8px 16px', border: 'none', borderRadius: 6, background: '#18181b', color: '#fff', cursor: 'pointer' }}
+              >Copy Code</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

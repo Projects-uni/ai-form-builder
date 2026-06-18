@@ -134,6 +134,7 @@ export const translations = {
       title: 'Responses',
       publicForm: 'Public form',
       exportCsv: 'Export CSV',
+      exportXlsx: 'Export XLSX',
       noResponsesYet: 'No responses yet',
       noResponsesDesc: 'Share the public form link. Submitted answers will appear here and can be exported as CSV.',
       submitted: 'Submitted',
@@ -171,6 +172,21 @@ export const translations = {
       signInLink: 'Sign in',
       verifyTitle: 'Check your email',
       verifyDesc: 'We sent a confirmation link to your email. Click it to activate your account.'
+    },
+    settings: {
+      title: 'Settings',
+      webhooks: 'Webhooks',
+      webhooksDesc: 'Automatically send real-time form responses to an external URL via HTTP POST.',
+      addWebhook: 'Add Webhook',
+      targetUrl: 'Target URL',
+      targetUrlPlaceholder: 'https://api.example.com/webhook',
+      status: 'Status',
+      active: 'Active',
+      inactive: 'Inactive',
+      secretKey: 'Secret Key',
+      secretKeyDesc: 'Used to sign the payload (HMAC-SHA256) so you can verify the request is authentic.',
+      noWebhooksYet: 'No webhooks configured yet.',
+      confirmDelete: 'Are you sure you want to delete this webhook?'
     }
   },
   tr: {
@@ -308,6 +324,7 @@ export const translations = {
       title: 'Yanıtlar',
       publicForm: 'Açık form',
       exportCsv: 'CSV Dışa Aktar',
+      exportXlsx: 'XLSX Dışa Aktar',
       noResponsesYet: 'Henüz yanıt yok',
       noResponsesDesc: 'Açık form bağlantısını paylaşın. Gönderilen yanıtlar burada görünecek ve CSV olarak dışa aktarılabilecektir.',
       submitted: 'Gönderildi',
@@ -345,6 +362,21 @@ export const translations = {
       signInLink: 'Giriş yapın',
       verifyTitle: 'E-postanızı kontrol edin',
       verifyDesc: 'E-posta adresinize bir onay bağlantısı gönderdik. Hesabınızı etkinleştirmek için bağlantıya tıklayın.'
+    },
+    settings: {
+      title: 'Ayarlar',
+      webhooks: 'Webhook\'lar',
+      webhooksDesc: 'Form yanıtlarını gerçek zamanlı olarak HTTP POST aracılığıyla harici bir URL\'ye otomatik olarak gönderin.',
+      addWebhook: 'Webhook Ekle',
+      targetUrl: 'Hedef URL',
+      targetUrlPlaceholder: 'https://api.ornek.com/webhook',
+      status: 'Durum',
+      active: 'Aktif',
+      inactive: 'Pasif',
+      secretKey: 'Gizli Anahtar',
+      secretKeyDesc: 'İsteğin gerçek olduğunu doğrulayabilmeniz için yükü imzalamak için kullanılır (HMAC-SHA256).',
+      noWebhooksYet: 'Henüz yapılandırılmış webhook yok.',
+      confirmDelete: 'Bu webhook\'u silmek istediğinizden emin misiniz?'
     }
   }
 }

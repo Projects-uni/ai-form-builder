@@ -4,8 +4,11 @@ import { normalizeFormSchema } from '@/lib/forms/logic'
 import {
   buildResponsesCsv,
   safeCsvFilename,
+  getResponseColumns,
+  buildResponseRows,
   type ResponseRecord,
 } from '@/lib/forms/responses'
+import * as xlsx from 'xlsx'
 
 interface RouteContext {
   params: Promise<{ workspaceId: string; formId: string }>
@@ -18,7 +21,9 @@ interface FormRecord {
   schema: unknown
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
+  const url = new URL(request.url)
+  const format = url.searchParams.get('format') || 'csv'
   const { workspaceId, formId } = await context.params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -55,7 +60,28 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const formRecord = form as FormRecord
   const schema = normalizeFormSchema(formRecord.schema)
-  const csv = buildResponsesCsv(schema, (responses ?? []) as ResponseRecord[])
+  const responseData = (responses ?? []) as ResponseRecord[]
+
+  if (format === 'xlsx') {
+    const headers = getResponseColumns(schema).map((column) => column.label)
+    const rows = buildResponseRows(schema, responseData)
+    
+    const worksheet = xlsx.utils.aoa_to_sheet([headers, ...rows])
+    const workbook = xlsx.utils.book_new()
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Responses')
+    
+    const buf = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+    
+    return new Response(buf, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${safeCsvFilename(formRecord.title).replace('.csv', '.xlsx')}"`,
+        'Cache-Control': 'no-store',
+      },
+    })
+  }
+
+  const csv = buildResponsesCsv(schema, responseData)
 
   return new Response(csv, {
     headers: {
